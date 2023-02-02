@@ -1,0 +1,59 @@
+{% assign static_end_date    = "'2023-01-31'" %} 
+{% assign transaction_months = "'2022-02-01', '2022-03-01', '2022-04-01', '2022-05-01', '2022-06-01', '2022-07-01', '2022-08-01', '2022-09-01', '2022-10-01', '2022-11-01', '2022-12-01', '2023-01-01'" %}  -- the 1st of the month of interest 
+{% assign max_receipts = 0 %} -- set to *zero* for no limit 
+{% assign offset_receipts = 0 %}  -- used with the limit above, where in the list to start, if breaking it up into chunks; offset of N skips the first N records 
+
+
+WITH 
+omni_150 AS (
+  SELECT 
+    DATE_TRUNC(day, START_DATE) as static_start_date, 
+    DATE_TRUNC(day, END_DATE) as static_end_date, 
+    USER_ID 
+  FROM INFOSCOUT.US_ETL.D_USER_STATIC dus 
+  WHERE END_DATE >= '2019-12-31' 
+    -- end_date = '{{static_end_date}}' 
+    AND start_date = DATE_TRUNC('month', DATEADD(month, -11, end_date))
+    AND static_group = 'max_america_omni_150k'
+),
+all_receipts AS (
+  SELECT 
+    -- COUNT(*) 
+    r.ID as RECEIPT_ID, 
+    DATE_TRUNC(month, r.TRANSACTION_DATETIME) as transaction_month, 
+    static_end_date 
+  FROM INFOSCOUT.PRICESCOUT.RDL_RECEIPT r 
+  JOIN INFOSCOUT.PRICESCOUT.PRICESCOUTAPP_USERRECEIPT ur 
+    ON r.ID = ur.RECEIPT_ID 
+  JOIN omni_150 s 
+    ON ur.USER_ID = s.USER_ID 
+    AND r.TRANSACTION_DATETIME BETWEEN s.STATIC_START_DATE AND s.STATIC_END_DATE 
+  LEFT JOIN INFOSCOUT.DATAMASTER.DATAMASTER_BANNER b 
+    ON r.BANNER_KEY = b.KEY 
+  WHERE TRUE 
+    AND DETAILED_STATE = 'summary_complete' 
+    -- AND MEDIUM like 'PAP%'https://app.mode.com/editor/infoscout/reports/7404c55b6f7a/queries/e49fe66c1184
+    AND MEDIUM LIKE 'PAP%'
+    AND r.banner_key in ('bojangles','burger_king','chickfila','dairy_queen','kfc','kfc_taco_bell','mcdonalds','pilot_wendys','pizza_hut','popeyes','raising_canes','sonic','subway','taco_bell','wendys','zaxbys') 
+   
+    AND TRANSACTION_DATETIME BETWEEN '2019-01-01' AND '2023-01-31' 
+    
+    -- AND r.ID NOT IN (SELECT RECEIPT_ID FROM INFOSCOUT.PRICESCOUT.DEFT_DEFTNOTE dn WHERE dn.DEFT_JOB_ID IN (6454, 6456)) 
+  -- ORDER BY s.USER_ID, RECEIPT_ID, s.STATIC_END_DATE 
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY RECEIPT_ID ORDER BY STATIC_END_DATE DESC) = 1 
+)
+
+SELECT RECEIPT_ID 
+FROM all_receipts 
+WHERE static_end_date IN ({{static_end_date}}) 
+  AND transaction_month IN ({{transaction_months}}) 
+
+
+{% if max_receipts != 0 %}
+ORDER BY RECEIPT_ID 
+LIMIT {{max_receipts}} 
+OFFSET {{offset_receipts}} 
+{% endif %}
+
+
+
