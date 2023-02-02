@@ -1,0 +1,58 @@
+--query to pull the needed receipts for QC - to be pulled separately for banners identified by quantity to send
+({% assign sample_per_banner = X %}
+
+WITH 
+receipts AS (
+  SELECT 
+    r.ID as RECEIPT_ID, 
+    r.BANNER_KEY as BANNER, 
+    IFNULL(f.RDL:loyalty_card_used, false) as loyalty_card_used
+  FROM INFOSCOUT.PRICESCOUT.RDL_RECEIPT r 
+  JOIN INFOSCOUT.PRICESCOUT.RDL_RECEIPTFLATLAYER f 
+    ON r.ID = f.RECEIPT_ID 
+  WHERE 
+    r.TRANSACTION_DATETIME between '2022-11-15' and '2022-12-15' --be sure to change date monthly
+    AND r.MEDIUM = 'PAPER' 
+    AND r.BANNER_KEY IN (
+                
+--banners added here
+
+
+       ) 
+   
+
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY r.BANNER_KEY ORDER BY RANDOM()) <= {{ sample_per_banner }} 
+),
+images AS (
+  SELECT 
+    RECEIPT_ID, 
+    ROW_NUMBER() OVER (PARTITION BY RECEIPT_ID ORDER BY ID) as IMAGE_NUM, 
+    CONCAT('https://s3.amazonaws.com/isc.pricescout.media/', 
+      CASE 
+        WHEN PROCESSING_IMG > 0 THEN REPLACE(S3IMAGE, '.jp', '.processing.jp') 
+        ELSE S3IMAGE 
+      END -- accounts for both jpg and jpeg
+    ) as IMAGE_URL 
+  FROM INFOSCOUT.PRICESCOUT.RDL_RECEIPTIMAGE ri 
+  WHERE RECEIPT_ID IN ( SELECT RECEIPT_ID FROM receipts )
+)
+
+SELECT 
+  r.RECEIPT_ID, 
+  r.BANNER, 
+  r.loyalty_card_used, 
+  MAX(IFF(IMAGE_NUM = 1, IMAGE_URL, NULL)) as IMAGE1, 
+  MAX(IFF(IMAGE_NUM = 2, IMAGE_URL, NULL)) as IMAGE2, 
+  MAX(IFF(IMAGE_NUM = 3, IMAGE_URL, NULL)) as IMAGE3, 
+  MAX(IFF(IMAGE_NUM = 4, IMAGE_URL, NULL)) as IMAGE4, 
+  MAX(IFF(IMAGE_NUM = 5, IMAGE_URL, NULL)) as IMAGE5, 
+  MAX(IFF(IMAGE_NUM = 6, IMAGE_URL, NULL)) as IMAGE6, 
+  MAX(IFF(IMAGE_NUM = 7, IMAGE_URL, NULL)) as IMAGE7, 
+  MAX(IFF(IMAGE_NUM = 8, IMAGE_URL, NULL)) as IMAGE8, 
+  MAX(IFF(IMAGE_NUM = 9, IMAGE_URL, NULL)) as IMAGE9
+FROM receipts r  
+JOIN images i 
+  ON r.RECEIPT_ID = i.RECEIPT_ID 
+GROUP BY r.RECEIPT_ID, r.BANNER, r.loyalty_card_used 
+ORDER BY r.BANNER, RANDOM() )
+
