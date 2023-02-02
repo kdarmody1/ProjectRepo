@@ -1,0 +1,16 @@
+with lowescounts as (
+select b.basket_id, count(bi.item_id) as itemidct, count(bi.rin) as rinct,
+(count(bi.item_id)-count(bi.rin)) as delta
+from INFOSCOUT.US_ETL.BASKET_ITEM bi
+join INFOSCOUT.US_TLOG.F_BASKET b on bi.BASKET_ID=b.BASKET_ID
+where bi.BANNER_ID in ('lowes')
+and b.TRANSACTION_DT>'2019-01-01'
+and b.MEDIUM_ID in ('1')
+group by 1
+)
+
+select basket_id, delta
+from lowescounts l
+--join INFOSCOUT.PRICESCOUT.DEFT_DEFTNOTE d on l.basket_id = d.RECEIPT_ID
+where delta not in ('0')
+--and basket_id not in (select RECEIPT_ID from INFOSCOUT.PRICESCOUT.DEFT_DEFTNOTE where DEFT_JOB_ID in ('8261'))
