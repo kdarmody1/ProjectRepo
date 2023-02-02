@@ -1,0 +1,8 @@
+with idreceipts as (
+select receipt_id from INFOSCOUT.PRICESCOUT.DEFT_DEFTNOTE d 
+where deft_job_id in ('8245')
+)
+select i.receipt_id, count(b.rin), count(distinct b.item_id)
+from idreceipts i 
+join INFOSCOUT.US_ETL.BASKET_ITEM b on i.receipt_id=b.basket_id
+group by 1
