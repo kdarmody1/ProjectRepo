@@ -1,0 +1,19 @@
+with exjson as (
+SELECT
+r.ID,
+r.TRANSACTION_DATETIME,
+f.LAYER_TYPE,
+value:ocr_rsd::varchar as jrsd,
+value:rin::varchar as jrin
+from INFOSCOUT.PRICESCOUT.RDL_RECEIPT r
+left join INFOSCOUT.STATS.F_RECEIPTLAYER f  on r.ID=f.RECEIPT_ID
+, lateral flatten(input => layer_json:items)
+where LAYER_TYPE in ('QUICK_EXTRACT', 'SPATIAL_QUICK_EXTRACT') 
+and 
+RECEIPT_ID in (select receipt_id from pricescout.deft_deftnote where deft_job_id in ('8140', '8159'))
+and r.FULL_TRANS_SOURCE in ('AUTO')
+)
+select id, layer_type, transaction_datetime, count(jrsd), count(jrin)
+from exjson 
+group by 1, 2, 3
+order by 1, 2, 3
