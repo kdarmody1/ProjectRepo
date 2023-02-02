@@ -1,0 +1,10 @@
+select rr.BANNER_KEY, rr.id, rr.TRANSACTION_DATETIME
+from INFOSCOUT.PRICESCOUT.RDL_RECEIPT rr 
+join INFOSCOUT.PRICESCOUT.RDL_RECEIPTINFO ri on rr.id=ri.RECEIPT_ID
+where rr.BANNER_KEY in ('food_dynasty')
+and ri.TRANSCRIBED_TEXT ilike '%almonte%'
+and (ri.TRANSCRIBED_TEXT ilike '%loyalty%'
+or ri.TRANSCRIBED_TEXT ilike '%member%'
+or ri.TRANSCRIBED_TEXT ilike '%customer%'
+)
+order by rr.TRANSACTION_DATETIME desc
