@@ -1,0 +1,66 @@
+WITH 
+data AS (
+  SELECT 
+    -- q.*, 
+    q.ID as question_id,
+    q.CONTEXT:task::VARCHAR as task,
+    a.ID as assignment_id, 
+    q.CONTEXT:receipt_id receipt_id, 
+    q.CONTEXT:layer_data:summary:banner::VARCHAR orig_banner, 
+    a.DATA:summary:banner as banner_correct, 
+    r.BANNER_KEY cur_banner, 
+    q.CONTEXT:layer_data:summary:loyalty_card_used as prediction, 
+    a.DATA:summary:loyalty_card_used as prediction_correct 
+  FROM INFOSCOUT.MAESTRO.CORE_QUESTION q 
+  JOIN INFOSCOUT.PRICESCOUT.RDL_RECEIPT r 
+    ON r.ID = q.CONTEXT:receipt_id 
+  LEFT JOIN INFOSCOUT.MAESTRO.CORE_ASSIGNMENT a 
+    ON q.ID = a.QUESTION_ID 
+  WHERE 
+    q.TEAM_ID = 37 -- nmr_operations 
+    AND q.TEMPLATE = 'rdl/full-review-v2' 
+    AND q.CONTEXT:source::VARCHAR = 'QUICK_EXTRACT' 
+    AND q.CONTEXT:tags[0] = 864 
+    -- AND banner_correct = true -- throw away any rows where we got the wrong banner 
+),
+flags AS (
+  SELECT DISTINCT r.QUESTION_ID as flagged_question_id 
+  FROM INFOSCOUT.MAESTRO.PORTAL_QUESTIONISSUEREPORT r 
+  JOIN data 
+    ON r.QUESTION_ID = data.question_id 
+),
+results AS (
+  SELECT data.*, 
+    flags.flagged_question_id IS NOT NULL as was_flagged, 
+    flags.flagged_question_id IS NULL AND banner_correct = false as wrong_banner, 
+    flags.flagged_question_id IS NULL AND banner_correct = true AND     prediction AND     prediction_correct as tp, 
+    flags.flagged_question_id IS NULL AND banner_correct = true AND     prediction AND NOT prediction_correct as fp, 
+    flags.flagged_question_id IS NULL AND banner_correct = true AND NOT prediction AND     prediction_correct as tn, 
+    flags.flagged_question_id IS NULL AND banner_correct = true AND NOT prediction AND NOT prediction_correct as fn 
+  FROM data 
+  LEFT JOIN flags 
+    ON data.question_id = flags.flagged_question_id 
+),
+totals AS (
+  SELECT 
+    -- *, 
+    orig_banner, 
+    task,
+    COUNT(*) as total_sent, 
+    SUM(IFF(assignment_id IS NOT NULL, 1, 0)) as total_reviewed, 
+    SUM(IFF(was_flagged, 1, 0)) as indeterminate, 
+    SUM(IFF(wrong_banner, 1, 0)) as wrong_banner, 
+    SUM(IFF(tp, 1, 0)) as tps, 
+    SUM(IFF(tn, 1, 0)) as tns, 
+    SUM(IFF(fp, 1, 0)) as fps, 
+    SUM(IFF(fn, 1, 0)) as fns 
+  FROM results 
+  GROUP BY 1,2
+)
+
+SELECT *, 
+  indeterminate / NULLIFZERO(total_reviewed) as indeterminate_rate, 
+  wrong_banner / NULLIFZERO(total_reviewed) as banner_error_rate, 
+  tps / NULLIFZERO(tps + fns) as recall, 
+  tps / NULLIFZERO(tps + fps) as precision 
+FROM totals 
