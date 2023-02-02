@@ -1,0 +1,281 @@
+--DO NOT USE  quantity too large to send through python IMPORTANT for banners and quantities
+({% assign sample_per_banner = 25 %}
+
+WITH 
+receipts AS (
+  SELECT 
+    r.ID as RECEIPT_ID, 
+    r.BANNER_KEY as BANNER, 
+    IFNULL(f.RDL:loyalty_card_used, false) as loyalty_card_used
+  FROM INFOSCOUT.PRICESCOUT.RDL_RECEIPT r 
+  JOIN INFOSCOUT.PRICESCOUT.RDL_RECEIPTFLATLAYER f 
+    ON r.ID = f.RECEIPT_ID 
+  WHERE 
+    r.TRANSACTION_DATETIME between '2022-03-15' and '2022-04-15' --be sure to change date monthly
+    AND r.MEDIUM = 'PAPER' 
+    AND r.BANNER_KEY IN (
+   'food_emporium',
+'fresco_y_mas',
+'food_dynasty',
+'holiday_farms',
+'brooklyn_harvest_market',
+'keyfood_marketplace',
+'food_world',
+'gala_fresh',
+'corrados',
+'urban_market',
+'antillana_supermarket',
+'brooklyn_fare',
+'price_choice_foodmarkets',
+'just_save',
+'harveys_supermarket',
+'eastside_marketplace',
+'golden_mango',
+'vitelios_marketplace',
+'olive_tree_market',
+'farm_boy_country_market',
+'gala_foods',
+'kroger_marketplace',
+'food_fair_market',
+'owens_market'
+       ) 
+   
+
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY r.BANNER_KEY ORDER BY RANDOM()) <= {{ sample_per_banner }} 
+),
+images AS (
+  SELECT 
+    RECEIPT_ID, 
+    ROW_NUMBER() OVER (PARTITION BY RECEIPT_ID ORDER BY ID) as IMAGE_NUM, 
+    CONCAT('https://s3.amazonaws.com/isc.pricescout.media/', 
+      CASE 
+        WHEN PROCESSING_IMG > 0 THEN REPLACE(S3IMAGE, '.jp', '.processing.jp') 
+        ELSE S3IMAGE 
+      END -- accounts for both jpg and jpeg
+    ) as IMAGE_URL 
+  FROM INFOSCOUT.PRICESCOUT.RDL_RECEIPTIMAGE ri 
+  WHERE RECEIPT_ID IN ( SELECT RECEIPT_ID FROM receipts )
+)
+
+SELECT 
+  r.RECEIPT_ID, 
+  r.BANNER, 
+  r.loyalty_card_used, 
+  MAX(IFF(IMAGE_NUM = 1, IMAGE_URL, NULL)) as IMAGE1, 
+  MAX(IFF(IMAGE_NUM = 2, IMAGE_URL, NULL)) as IMAGE2, 
+  MAX(IFF(IMAGE_NUM = 3, IMAGE_URL, NULL)) as IMAGE3, 
+  MAX(IFF(IMAGE_NUM = 4, IMAGE_URL, NULL)) as IMAGE4, 
+  MAX(IFF(IMAGE_NUM = 5, IMAGE_URL, NULL)) as IMAGE5, 
+  MAX(IFF(IMAGE_NUM = 6, IMAGE_URL, NULL)) as IMAGE6, 
+  MAX(IFF(IMAGE_NUM = 7, IMAGE_URL, NULL)) as IMAGE7, 
+  MAX(IFF(IMAGE_NUM = 8, IMAGE_URL, NULL)) as IMAGE8, 
+  MAX(IFF(IMAGE_NUM = 9, IMAGE_URL, NULL)) as IMAGE9
+FROM receipts r  
+JOIN images i 
+  ON r.RECEIPT_ID = i.RECEIPT_ID 
+GROUP BY r.RECEIPT_ID, r.BANNER, r.loyalty_card_used 
+ORDER BY r.BANNER, RANDOM() )
+
+UNION ALL
+
+({% assign sample_per_banner = 100 %}
+
+WITH 
+receipts AS (
+  SELECT 
+    r.ID as RECEIPT_ID, 
+    r.BANNER_KEY as BANNER, 
+    IFNULL(f.RDL:loyalty_card_used, false) as loyalty_card_used
+  FROM INFOSCOUT.PRICESCOUT.RDL_RECEIPT r 
+  JOIN INFOSCOUT.PRICESCOUT.RDL_RECEIPTFLATLAYER f 
+    ON r.ID = f.RECEIPT_ID 
+  WHERE 
+    r.TRANSACTION_DATETIME between '2022-03-15' and '2022-04-15' --be sure to change date monthly
+    AND r.MEDIUM = 'PAPER' 
+    AND r.BANNER_KEY IN (
+  'foods_co',
+'jay_c_foods',
+'metro_market',
+'bakers',
+'pay_less_super_market',
+'bevmo',
+'kwik_shop',
+'food_universe',
+'loaf_n_jug',
+'superfresh',
+'gerbes_supermarket'
+       ) 
+   
+
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY r.BANNER_KEY ORDER BY RANDOM()) <= {{ sample_per_banner }} 
+),
+images AS (
+  SELECT 
+    RECEIPT_ID, 
+    ROW_NUMBER() OVER (PARTITION BY RECEIPT_ID ORDER BY ID) as IMAGE_NUM, 
+    CONCAT('https://s3.amazonaws.com/isc.pricescout.media/', 
+      CASE 
+        WHEN PROCESSING_IMG > 0 THEN REPLACE(S3IMAGE, '.jp', '.processing.jp') 
+        ELSE S3IMAGE 
+      END -- accounts for both jpg and jpeg
+    ) as IMAGE_URL 
+  FROM INFOSCOUT.PRICESCOUT.RDL_RECEIPTIMAGE ri 
+  WHERE RECEIPT_ID IN ( SELECT RECEIPT_ID FROM receipts )
+)
+
+SELECT 
+  r.RECEIPT_ID, 
+  r.BANNER, 
+  r.loyalty_card_used, 
+  MAX(IFF(IMAGE_NUM = 1, IMAGE_URL, NULL)) as IMAGE1, 
+  MAX(IFF(IMAGE_NUM = 2, IMAGE_URL, NULL)) as IMAGE2, 
+  MAX(IFF(IMAGE_NUM = 3, IMAGE_URL, NULL)) as IMAGE3, 
+  MAX(IFF(IMAGE_NUM = 4, IMAGE_URL, NULL)) as IMAGE4, 
+  MAX(IFF(IMAGE_NUM = 5, IMAGE_URL, NULL)) as IMAGE5, 
+  MAX(IFF(IMAGE_NUM = 6, IMAGE_URL, NULL)) as IMAGE6, 
+  MAX(IFF(IMAGE_NUM = 7, IMAGE_URL, NULL)) as IMAGE7, 
+  MAX(IFF(IMAGE_NUM = 8, IMAGE_URL, NULL)) as IMAGE8, 
+  MAX(IFF(IMAGE_NUM = 9, IMAGE_URL, NULL)) as IMAGE9
+FROM receipts r  
+JOIN images i 
+  ON r.RECEIPT_ID = i.RECEIPT_ID 
+GROUP BY r.RECEIPT_ID, r.BANNER, r.loyalty_card_used 
+ORDER BY r.BANNER, RANDOM() )
+
+UNION ALL
+
+({% assign sample_per_banner = 250 %}
+
+WITH 
+receipts AS (
+  SELECT 
+    r.ID as RECEIPT_ID, 
+    r.BANNER_KEY as BANNER, 
+    IFNULL(f.RDL:loyalty_card_used, false) as loyalty_card_used
+  FROM INFOSCOUT.PRICESCOUT.RDL_RECEIPT r 
+  JOIN INFOSCOUT.PRICESCOUT.RDL_RECEIPTFLATLAYER f 
+    ON r.ID = f.RECEIPT_ID 
+  WHERE 
+    r.TRANSACTION_DATETIME between '2022-03-15' and '2022-04-15' --be sure to change date monthly
+    AND r.MEDIUM = 'PAPER' 
+    AND r.BANNER_KEY IN (
+  'giant',
+'food4less',
+'pick_n_save',
+'king_soopers',
+'dillons_marketplace',
+'key_food',
+'lowes_foods',
+'city_market',
+'marianos_grocery',
+'duane_reade',
+'quality_food_centers',
+'ruler_discount_foods'
+       ) 
+   
+
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY r.BANNER_KEY ORDER BY RANDOM()) <= {{ sample_per_banner }} 
+),
+images AS (
+  SELECT 
+    RECEIPT_ID, 
+    ROW_NUMBER() OVER (PARTITION BY RECEIPT_ID ORDER BY ID) as IMAGE_NUM, 
+    CONCAT('https://s3.amazonaws.com/isc.pricescout.media/', 
+      CASE 
+        WHEN PROCESSING_IMG > 0 THEN REPLACE(S3IMAGE, '.jp', '.processing.jp') 
+        ELSE S3IMAGE 
+      END -- accounts for both jpg and jpeg
+    ) as IMAGE_URL 
+  FROM INFOSCOUT.PRICESCOUT.RDL_RECEIPTIMAGE ri 
+  WHERE RECEIPT_ID IN ( SELECT RECEIPT_ID FROM receipts )
+)
+
+SELECT 
+  r.RECEIPT_ID, 
+  r.BANNER, 
+  r.loyalty_card_used, 
+  MAX(IFF(IMAGE_NUM = 1, IMAGE_URL, NULL)) as IMAGE1, 
+  MAX(IFF(IMAGE_NUM = 2, IMAGE_URL, NULL)) as IMAGE2, 
+  MAX(IFF(IMAGE_NUM = 3, IMAGE_URL, NULL)) as IMAGE3, 
+  MAX(IFF(IMAGE_NUM = 4, IMAGE_URL, NULL)) as IMAGE4, 
+  MAX(IFF(IMAGE_NUM = 5, IMAGE_URL, NULL)) as IMAGE5, 
+  MAX(IFF(IMAGE_NUM = 6, IMAGE_URL, NULL)) as IMAGE6, 
+  MAX(IFF(IMAGE_NUM = 7, IMAGE_URL, NULL)) as IMAGE7, 
+  MAX(IFF(IMAGE_NUM = 8, IMAGE_URL, NULL)) as IMAGE8, 
+  MAX(IFF(IMAGE_NUM = 9, IMAGE_URL, NULL)) as IMAGE9
+FROM receipts r  
+JOIN images i 
+  ON r.RECEIPT_ID = i.RECEIPT_ID 
+GROUP BY r.RECEIPT_ID, r.BANNER, r.loyalty_card_used 
+ORDER BY r.BANNER, RANDOM() )
+
+UNION ALL
+({% assign sample_per_banner = 500 %}
+
+WITH 
+receipts AS (
+  SELECT 
+    r.ID as RECEIPT_ID, 
+    r.BANNER_KEY as BANNER, 
+    IFNULL(f.RDL:loyalty_card_used, false) as loyalty_card_used
+  FROM INFOSCOUT.PRICESCOUT.RDL_RECEIPT r 
+  JOIN INFOSCOUT.PRICESCOUT.RDL_RECEIPTFLATLAYER f 
+    ON r.ID = f.RECEIPT_ID 
+  WHERE 
+    r.TRANSACTION_DATETIME between '2022-03-15' and '2022-04-15' --be sure to change date monthly
+    AND r.MEDIUM = 'PAPER' 
+    AND r.BANNER_KEY IN (
+  'kroger',
+'walgreens',
+'food_lion',
+'meijer',
+'stop_and_shop',
+'bjs',
+'winn_dixie',
+'albertsons',
+'giant_martins',
+'rite_aid',
+'harris_teeter',
+'fred_meyer',
+'smiths_marketplace',
+'frys_marketplace',
+'ralphs',
+'weis_markets',
+'hannaford'
+       ) 
+   
+
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY r.BANNER_KEY ORDER BY RANDOM()) <= {{ sample_per_banner }} 
+),
+images AS (
+  SELECT 
+    RECEIPT_ID, 
+    ROW_NUMBER() OVER (PARTITION BY RECEIPT_ID ORDER BY ID) as IMAGE_NUM, 
+    CONCAT('https://s3.amazonaws.com/isc.pricescout.media/', 
+      CASE 
+        WHEN PROCESSING_IMG > 0 THEN REPLACE(S3IMAGE, '.jp', '.processing.jp') 
+        ELSE S3IMAGE 
+      END -- accounts for both jpg and jpeg
+    ) as IMAGE_URL 
+  FROM INFOSCOUT.PRICESCOUT.RDL_RECEIPTIMAGE ri 
+  WHERE RECEIPT_ID IN ( SELECT RECEIPT_ID FROM receipts )
+)
+
+SELECT 
+  r.RECEIPT_ID, 
+  r.BANNER, 
+  r.loyalty_card_used, 
+  MAX(IFF(IMAGE_NUM = 1, IMAGE_URL, NULL)) as IMAGE1, 
+  MAX(IFF(IMAGE_NUM = 2, IMAGE_URL, NULL)) as IMAGE2, 
+  MAX(IFF(IMAGE_NUM = 3, IMAGE_URL, NULL)) as IMAGE3, 
+  MAX(IFF(IMAGE_NUM = 4, IMAGE_URL, NULL)) as IMAGE4, 
+  MAX(IFF(IMAGE_NUM = 5, IMAGE_URL, NULL)) as IMAGE5, 
+  MAX(IFF(IMAGE_NUM = 6, IMAGE_URL, NULL)) as IMAGE6, 
+  MAX(IFF(IMAGE_NUM = 7, IMAGE_URL, NULL)) as IMAGE7, 
+  MAX(IFF(IMAGE_NUM = 8, IMAGE_URL, NULL)) as IMAGE8, 
+  MAX(IFF(IMAGE_NUM = 9, IMAGE_URL, NULL)) as IMAGE9
+FROM receipts r  
+JOIN images i 
+  ON r.RECEIPT_ID = i.RECEIPT_ID 
+GROUP BY r.RECEIPT_ID, r.BANNER, r.loyalty_card_used 
+ORDER BY r.BANNER, RANDOM() )
