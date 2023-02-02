@@ -1,0 +1,48 @@
+WITH 
+omni_150 AS (
+  SELECT 
+    DATE_TRUNC(day, START_DATE) as static_start_date, 
+    DATE_TRUNC(day, END_DATE) as static_end_date, 
+    USER_ID 
+  FROM INFOSCOUT.US_ETL.D_USER_STATIC dus 
+  WHERE end_date >= '2019-12-31' 
+    AND start_date = DATE_TRUNC('month', DATEADD(month, -11, end_date))
+    AND static_group = 'max_america_omni_150k'
+),
+receipts AS (
+  SELECT 
+    r.ID as RECEIPT_ID, 
+    s.USER_ID, 
+    s.STATIC_END_DATE, 
+    DATE_TRUNC(month, r.TRANSACTION_DATETIME) as transaction_month 
+  FROM INFOSCOUT.PRICESCOUT.RDL_RECEIPT r 
+  JOIN INFOSCOUT.PRICESCOUT.PRICESCOUTAPP_USERRECEIPT ur 
+    ON r.ID = ur.RECEIPT_ID 
+  JOIN omni_150 s 
+    ON ur.USER_ID = s.USER_ID 
+    AND r.TRANSACTION_DATETIME BETWEEN s.STATIC_START_DATE AND s.STATIC_END_DATE 
+  LEFT JOIN INFOSCOUT.DATAMASTER.DATAMASTER_BANNER b 
+    ON r.BANNER_KEY = b.KEY 
+  WHERE TRUE 
+    AND DETAILED_STATE = 'summary_complete' 
+    AND MEDIUM like 'PAP%'
+    AND r.banner_key in ('little_caesars_pizza', 'panera_bread', 'arbys', 'chipotle', 'dunkin_donuts', 'firehouse_subs', 'five_guys_burgers_and_fries', 'jack_in_the_box', 'jersey_mikes_subs', 'jimmy_johns','starbucks', 'dominos_pizza', 'papa_johns') 
+       
+    AND TRANSACTION_DATETIME BETWEEN '2019-01-01' AND '2022-12-31' 
+  QUALIFY ROW_NUMBER() OVER (PARTITION BY RECEIPT_ID ORDER BY STATIC_END_DATE DESC) = 1 
+  -- ORDER BY s.USER_ID, RECEIPT_ID, s.STATIC_END_DATE
+),
+agg_long as (
+  SELECT 
+    STATIC_END_DATE, 
+    transaction_month, 
+    COUNT(*) num_receipts 
+  FROM receipts 
+  GROUP BY 1, 2 
+  -- ORDER BY 
+)
+
+SELECT * 
+FROM agg_long 
+ORDER BY STATIC_END_DATE, TRANSACTION_MONTH 
+
