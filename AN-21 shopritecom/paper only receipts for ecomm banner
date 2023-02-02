@@ -1,0 +1,8 @@
+select rr.ID, rr.DETAILED_STATE, rr.TRANSACTION_DATETIME
+from INFOSCOUT.PRICESCOUT.RDL_RECEIPT rr 
+join INFOSCOUT.US_TLOG.F_BASKET_DENORM bd on rr.id=bd.BASKET_ID
+where rr.banner_key in ('shopritecom')
+and rr.medium in ('PAPER')
+and rr.TRANSACTION_DATETIME>'2022-09-01'
+and bd.TRANSCRIPTION_PANELIST in ('TRUE')
+and rr.DETAILED_STATE ilike '%summary%'
